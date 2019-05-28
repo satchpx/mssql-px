@@ -122,4 +122,3 @@ id          name                                               quantity
 (21 rows affected)
 ```
 
-Credit: Using https://github.com/twright-msft/mssql-node-docker-demo-app.git
