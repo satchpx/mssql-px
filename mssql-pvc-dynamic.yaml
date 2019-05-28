@@ -1,0 +1,84 @@
+---
+#### Portworx storage class
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+    name: px-mssql-sc
+provisioner: kubernetes.io/portworx-volume
+parameters:
+   repl: "2"
+---
+#### Portworx persistent volume claim
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+   name: mssql-data
+   annotations:
+     volume.beta.kubernetes.io/storage-class: px-mssql-sc
+spec:
+   accessModes:
+     - ReadWriteOnce
+   resources:
+     requests:
+       storage: 50Gi
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+    name: px-mssql-shared-sc
+provisioner: kubernetes.io/portworx-volume
+parameters:
+   repl: "2"
+   shared: "true"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+   name: mssql-backup
+   annotations:
+     volume.beta.kubernetes.io/storage-class: px-mssql-shared-sc
+spec:
+   accessModes:
+     - ReadWriteOnce
+   resources:
+     requests:
+       storage: 50Gi
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: mssql-deployment
+  labels:
+    app: mssql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mssql
+  template:
+    metadata:
+      labels:
+        app: mssql
+    spec:
+      containers:
+      - name: mssql
+        image: microsoft/mssql-server-linux:2017-CU13
+        ports:
+        - containerPort: 1433
+        env:
+        - name: ACCEPT_EULA
+          value: 'Y'
+        - name: SA_PASSWORD
+          value: 'Password1'
+        volumeMounts:
+        - mountPath: /var/opt/mssql
+          name: mssqlvol
+        - mountPath: /tmp
+          name: sharedvol1
+      nodeSelector:
+        mssql: "true"
+      volumes:
+      - name: mssqlvol
+        claimName: mssql-data
+      - name: sharedvol1
+        claimName: mssql-backup

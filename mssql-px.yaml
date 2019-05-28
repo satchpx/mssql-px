@@ -1,0 +1,40 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: mssql-deployment
+  labels:
+    app: mssql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mssql
+  template:
+    metadata:
+      labels:
+        app: mssql
+    spec:
+      containers:
+      - name: mssql
+        image: microsoft/mssql-server-linux:2017-CU13
+        ports:
+        - containerPort: 1433
+        env:
+        - name: ACCEPT_EULA
+          value: 'Y'
+        - name: SA_PASSWORD
+          value: 'Password1'
+        volumeMounts:
+        - mountPath: /var/opt/mssql
+          name: mssqlvol
+        - mountPath: /tmp
+          name: sharedvol1
+      nodeSelector:
+        mssql: "true"
+      volumes:
+      - name: mssqlvol
+        portworxVolume:
+          volumeID: mssqlvol
+      - name: sharedvol1
+        portworxVolume:
+          volumeID: sharedvol1
